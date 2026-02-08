@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough; // <--- IMPORTANTE
 
 class User extends Authenticatable
 {
@@ -58,4 +59,18 @@ class User extends Authenticatable
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
+
+    public function accounts() {
+        return $this->hasMany(Account::class);
+    }
+
+    // "Un cliente tiene muchas tarjetas" (a través de sus cuentas)
+    public function cards(): HasManyThrough
+    {
+        // Esto le dice a Laravel:
+        // "Busca las tarjetas que pertenecen a las cuentas de este usuario"
+        return $this->hasManyThrough(Card::class, Account::class);
+    }
+
+
 }

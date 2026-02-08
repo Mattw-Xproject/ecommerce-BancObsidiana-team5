@@ -16,7 +16,7 @@
             </button>
         </div>
         <div class="hidden lg:flex lg:gap-x-12">
-            <a href="#" class="text-sm/6 font-semibold text-white">Tarjetas</a>
+            <a href="registro-cliente" class="text-sm/6 font-semibold text-white">Tarjetas</a>
             <a href="#" class="text-sm/6 font-semibold text-white">Servicios</a>
             <a href="#" class="text-sm/6 font-semibold text-white">Pagos Comercios</a>
             <a href="#" class="text-sm/6 font-semibold text-white">Preguntas Frecuentes</a>
@@ -31,7 +31,7 @@
             <div tabindex="0" class="fixed inset-0 focus:outline-none">
             <el-dialog-panel class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-gray-900 p-6 sm:max-w-sm sm:ring-1 sm:ring-gray-100/10">
                 <div class="flex items-center justify-between">
-                <a href="#" class="-m-1.5 p-1.5">
+                <a href="{{ route('login') }}" class="-m-1.5 p-1.5">
                     <span class="sr-only">BancObsidiana</span>
                     <img src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500" alt="" class="h-8 w-auto" />
                 </a>
@@ -70,7 +70,7 @@
         <div class="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
         <div class="hidden sm:mb-8 sm:flex sm:justify-center">
             <div class="relative rounded-full px-3 py-1 text-sm/6 text-gray-400 ring-1 ring-white/10 hover:ring-white/20">
-            ¿Quieres saber mas de como solicitar tu tarjeta de credito BOC?. <a href="#" class="font-semibold text-indigo-400"><span aria-hidden="true" class="absolute inset-0"></span>Read more <span aria-hidden="true">&rarr;</span></a>
+            ¿Quieres saber mas de como solicitar tu tarjeta de credito BOC?. <a href="registro-cliente" class="font-semibold text-indigo-400"><span aria-hidden="true" class="absolute inset-0"></span>Read more <span aria-hidden="true">&rarr;</span></a>
             </div>
         </div>
         <div class="text-center">
@@ -87,7 +87,7 @@
             <p class="mt-8 text-lg font-medium text-pretty text-gray-400 sm:text-xl/8">"BancObsidiana: El punto de encuentro de tus finanzas." by Team5.</p>
             <div class="mt-10 flex items-center justify-center gap-x-6">
             <a href="{{ route('register') }}" class="rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">Crear una cuenta</a>
-            <a href="{{ route('login') }}" class="text-sm/6 font-semibold text-white">Ingresar <span aria-hidden="true">→</span></a>
+            <a href="registro-cliente" class="text-sm/6 font-semibold text-white">Registrar Comercio <span aria-hidden="true">→</span></a>
             </div>
         </div>
         </div>
