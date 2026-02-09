@@ -16,6 +16,13 @@ RUN apt-get update && apt-get install -y \
 
 # 2. Habilitar mod_rewrite de Apache (Vital para Laravel)
 RUN a2enmod rewrite
+# ... (después de instalar las dependencias con apt-get)
+# Corregir el error de MPM: Deshabilitar event/worker y habilitar prefork
+RUN a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork
+
+# 2. Habilitar mod_rewrite de Apache (Vital para Laravel)
+RUN a2enmod rewrite
+
 
 # 3. Configurar el Document Root de Apache a la carpeta /public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
