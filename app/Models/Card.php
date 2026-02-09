@@ -13,9 +13,18 @@ class Card extends Model
     protected $guarded = [];
 
     // ENCRIPTACIÓN AUTOMÁTICA
+    protected $fillable = [
+        'account_id',
+        'card_number',
+        'cvv',
+        'expiration_date',
+        'brand',
+        'credit_limit',
+        'status'
+    ];
     // Al guardar, Laravel encripta. Al acceder ($card->card_number), desencripta.
     protected $casts = [
-        'card_number' => 'encrypted',
+        //'card_number' => 'encrypted',
         'cvv' => 'encrypted',
         'expiration_date' => 'date',
     ];

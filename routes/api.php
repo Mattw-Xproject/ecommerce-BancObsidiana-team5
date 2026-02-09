@@ -9,6 +9,13 @@ Route::get('/user', function (Request $request) {
 
 use App\Http\Controllers\Api\CardController;
 
+// routes/api.php
+use App\Http\Controllers\Api\TransactionController;
+
+Route::prefix('v1')->group(function () {
+    Route::post('/transaction/process', [TransactionController::class, 'process']);
+});
+
 
 // Rutas protegidas (Requieren Login/Token)
 Route::middleware('auth:sanctum')->group(function () {

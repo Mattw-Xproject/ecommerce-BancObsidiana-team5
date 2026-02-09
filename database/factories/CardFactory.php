@@ -20,8 +20,8 @@ class CardFactory extends Factory
         return [
             'card_number' => $pan, // El modelo lo encriptará solo
             'cvv' => $this->faker->numerify('###'),
-            'bin' => substr($pan, 0, 6), // Primeros 6 (ej: 051234)
-            'last_four' => substr($pan, -4), // Últimos 4
+            //'bin' => substr($pan, 0, 6), // Primeros 6 (ej: 051234)
+            //'last_four' => substr($pan, -4), // Últimos 4
             'expiration_date' => $this->faker->dateTimeBetween('+1 year', '+5 years'),
             'brand' => 'Obsidiana Credit',
             'credit_limit' => $this->faker->randomElement([1000, 2000, 5000, 10000]),

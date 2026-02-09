@@ -108,7 +108,7 @@
                             </div>
                             {{-- Solicitar Tarjeta Adicional (Más pequeño) --}}
                             <div class="mt-4 pt-4 border-t border-zinc-200">
-                                <a href="#" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group">
+                                <a href="{{ route('onboarding.form', ['type' => 'personal']) }}" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group">
                                     <flux:icon.plus class="size-3 transition-transform group-hover:rotate-90" />
                                     Solicitar Tarjeta Adicional
                                 </a>
@@ -138,7 +138,7 @@
                             <flux:icon.chevron-down id="icon-{{ $card->id }}" class="size-4 transition-transform duration-300" />
                         </button>
 
-                        <div id="transactions-{{ $card->id }}" class="hidden overflow-hidden transition-all duration-300 mt-2 rounded-xl border border-zinc-200 bg-white dark:bg-zinc-100 text-black">
+                        <div id="transactions-{{ $card->id }}" class="hidden overflow-hidden transition-all duration-300 mt-2 rounded-xl border border-zinc-200 bg-white dark:bg-zinc-100 text-black shadow-sm">
                             <div class="p-4 overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead class="text-zinc-500 uppercase text-[9px] border-b border-zinc-200">
@@ -152,18 +152,49 @@
                                     <tbody class="divide-y divide-zinc-100">
                                         @forelse($card->transactions as $tx)
                                             <tr class="hover:bg-zinc-50/50 transition-colors">
-                                                <td class="py-3 px-4 font-bold text-xs">{{ $tx->merchant_name }}</td>
-                                                <td class="py-3 px-4 text-right text-xs text-zinc-600">{{ $tx->created_at->format('d M, Y') }}</td>
+                                                {{-- Comercio y Referencia --}}
+                                                <td class="py-3 px-4">
+                                                    <div class="font-bold text-xs text-black">{{ $tx->merchant_name }}</div>
+                                                    <div class="text-[8px] text-zinc-400 font-mono tracking-tighter uppercase">{{ $tx->reference }}</div>
+                                                </td>
+
+                                                {{-- Fecha --}}
+                                                <td class="py-3 px-4 text-right text-[10px] text-zinc-600">
+                                                    {{ $tx->created_at->format('d M, Y') }}
+                                                </td>
+
+                                                {{-- Estado Dinámico --}}
                                                 <td class="py-3 px-4 text-center">
-                                                    <span class="px-2 py-0.5 text-[9px] font-black rounded-full border border-green-200 bg-green-50 text-green-600">
+                                                    @php
+                                                        $statusStyles = match($tx->status) {
+                                                            'approved' => 'bg-green-50 text-green-600 border-green-200',
+                                                            'declined' => 'bg-red-50 text-red-600 border-red-200',
+                                                            'routing'  => 'bg-blue-50 text-blue-600 border-blue-200',
+                                                            default    => 'bg-zinc-50 text-zinc-500 border-zinc-200',
+                                                        };
+                                                    @endphp
+                                                    <span class="px-2 py-0.5 text-[9px] font-black rounded-full border {{ $statusStyles }}">
                                                         {{ strtoupper($tx->status) }}
                                                     </span>
                                                 </td>
-                                                <td class="py-3 px-4 text-right font-mono font-bold text-xs">${{ number_format($tx->amount, 2) }}</td>
+
+                                                {{-- Monto con Fee --}}
+                                                <td class="py-3 px-4 text-right">
+                                                    <div class="font-mono font-bold text-xs text-black">
+                                                        ${{ number_format($tx->amount, 2) }}
+                                                    </div>
+                                                    @if($tx->fee > 0)
+                                                        <div class="text-[9px] text-zinc-400 font-medium leading-none" title="Comisión bancaria del 2%">
+                                                            +${{ number_format($tx->fee, 2) }} <span class="text-[8px]">fee</span>
+                                                        </div>
+                                                    @endif
+                                                </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="4" class="py-8 text-center text-zinc-400 text-xs italic">No hay movimientos.</td>
+                                                <td colspan="4" class="py-8 text-center text-zinc-400 text-xs italic">
+                                                    No hay movimientos registrados en esta tarjeta.
+                                                </td>
                                             </tr>
                                         @endforelse
                                     </tbody>

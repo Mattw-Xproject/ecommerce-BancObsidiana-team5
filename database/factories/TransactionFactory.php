@@ -17,13 +17,19 @@ class TransactionFactory extends Factory
 
 public function definition(): array
 {
+    // Primero seleccionamos una tarjeta al azar (o creamos una)
+    $card = \App\Models\Card::inRandomOrder()->first() ?? \App\Models\Card::factory()->create();
+
     return [
-        'merchant_name' => $this->faker->company(),
-        'amount' => $this->faker->randomFloat(2, 5, 1000),
+        'card_id' => $card->id,
+        'account_id' => $card->account_id, // <--- Esto resuelve el error 1364
+        'merchant_name' => fake()->company(),
+        'amount' => fake()->randomFloat(2, 10, 2000),
+        'fee' => fake()->randomFloat(2, 1, 5),
+        'reference' => 'TXN-' . strtoupper(fake()->bothify('??###?')),
+        'type' => 'PURCHASE',
+        'currency' => 'USD',
         'status' => 'approved',
-        // ELIMINA cualquier línea que diga 'account_id' => ...
-        // Laravel se encargará de llenar 'card_id' automáticamente
-        // gracias a la magia de las relaciones.
     ];
 }
 }

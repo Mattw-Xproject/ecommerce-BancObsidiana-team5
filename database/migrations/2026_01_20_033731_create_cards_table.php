@@ -20,8 +20,8 @@ return new class extends Migration
             $table->text('cvv');
 
             // Datos de Visualización y Enrutamiento
-            $table->string('bin', 6)->index(); // Primeros 6 dígitos (Prefijo 05 + 4)
-            $table->string('last_four', 4);    // Últimos 4 dígitos
+            //$table->string('bin', 6)->index(); // Primeros 6 dígitos (Prefijo 05 + 4)
+            //$table->string('last_four', 4);    // Últimos 4 dígitos
             $table->date('expiration_date');
             $table->string('brand')->default('Obsidiana');
 
