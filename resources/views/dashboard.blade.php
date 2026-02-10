@@ -13,8 +13,9 @@
              <div class="p-6 bg-zinc-100 border-l-4 border-zinc-400 text-black rounded-md shadow-sm">
                 <h3 class="font-bold text-lg">Bienvenido a BancObsidiana</h3>
                 <p>Comienza creando tu primera tarjeta.</p>
-                <a href="{{ route('onboarding.form') }}" class="mt-4 inline-block bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold">Ir al Registro</a>
+                <a href="{{ route('onboarding.form') }}" class="mt-4 inline-block bg-indigo-600 text-black dark:text-white px-4 py-2 rounded text-sm font-bold">Ir al Registro</a>
              </div>
+
         @else
 
             @foreach($cards as $card)
