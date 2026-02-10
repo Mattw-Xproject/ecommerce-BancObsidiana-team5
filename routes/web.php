@@ -15,9 +15,9 @@ Route::get('dashboard', [PerfilController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::get('home', function () {
+/*Route::get('home', function () {
     return view('home');
-})->name('home');
+})->name('home');*/
 
 Route::get('/', function () {
     return view('welcome');
