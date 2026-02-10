@@ -1,0 +1,143 @@
+openapi: 3.0.0
+
+info:
+  title: BancObsidiana API
+  description: API de procesamiento de transacciones y enrutamiento interbancario
+  version: 1.0.0
+
+servers:
+  - url: http://127.0.0.1:8000/api/v1
+    description: Servidor local
+
+paths:
+  /transaction/process:
+    post:
+      tags:
+        - Transacciones
+      summary: Procesar transacción
+      description: >
+        Procesa una transacción bancaria.
+        Si la tarjeta pertenece a BancObsidiana (BIN 05), se procesa localmente.
+        Si es externa, se enruta al banco emisor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+
+      responses:
+        '200':
+          description: Transacción aprobada o enrutable
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ApprovedResponse'
+                  - $ref: '#/components/schemas/RoutingResponse'
+
+        '402':
+          description: Transacción rechazada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeclinedResponse'
+
+        '404':
+          description: Tarjeta no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeclinedResponse'
+
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    TransactionRequest:
+      type: object
+      required:
+        - card_number
+        - cvv
+        - expiry
+        - amount
+      properties:
+        card_number:
+          type: string
+          example: "0551116109157796"
+        cvv:
+          type: string
+          example: "123"
+        expiry:
+          type: string
+          example: "01/31"
+        amount:
+          type: number
+          format: float
+          example: 150.00
+        description:
+          type: string
+          example: "Compra Online"
+        destination_account:
+          type: string
+          example: "ACC-000123"
+
+    ApprovedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: APPROVED
+        auth:
+          type: string
+          example: OBS-A1B2C3
+        details:
+          type: object
+          properties:
+            debited:
+              type: number
+              example: 153.00
+            fee:
+              type: number
+              example: 3.00
+            description:
+              type: string
+              example: Compra Online
+
+    RoutingResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ROUTING
+        external_bin:
+          type: string
+          example: "04"
+        message:
+          type: string
+          example: Tarjeta ajena a BancObsidiana
+
+    DeclinedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: DECLINED
+        message:
+          type: string
+          example: Saldo insuficiente
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ERROR
+        message:
+          type: string
+          example: Error interno
