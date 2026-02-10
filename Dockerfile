@@ -18,10 +18,14 @@ RUN apt-get update && apt-get install -y \
 RUN a2enmod rewrite
 # ... (después de instalar las dependencias con apt-get)
 # Corregir el error de MPM: Deshabilitar event/worker y habilitar prefork
-RUN a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork
 
-# 2. Habilitar mod_rewrite de Apache (Vital para Laravel)
+# Habilitar mod_rewrite de Apache
 RUN a2enmod rewrite
+RUN a2enmod headers
+
+# Deshabilitar todos los MPMs excepto prefork
+RUN a2dismod mpm_event mpm_worker mpm_prefork
+RUN a2enmod mpm_prefork
 
 
 # 3. Configurar el Document Root de Apache a la carpeta /public
