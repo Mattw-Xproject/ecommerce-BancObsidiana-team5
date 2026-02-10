@@ -39,8 +39,24 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # 5. Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# 6. Copiar los archivos del proyecto
+# 1. Instalar Node.js 20 (Necesario para Vite 7+)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# 2. Instalar dependencias de Composer
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# 3. Instalar dependencias de Node
+COPY package*.json ./
+RUN npm install
+
+# 4. Copiar el resto del código
 COPY . .
+
+# 5. Compilar assets para producción
+# Esto genera el archivo /public/build/manifest.json que Laravel necesita
+RUN npm run build
 
 # 7. Instalar dependencias de PHP (Optimizadas para producción)
 RUN composer install --no-interaction --optimize-autoloader --no-dev
