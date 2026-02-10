@@ -43,22 +43,16 @@ WORKDIR /var/www/html
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
-    # Copiar archivos de paquetes
+
+# 1. Copiar archivos de dependencias primero (para usar caché de Docker)
 COPY package*.json ./
-
-# FORZAR la instalación de los plugins de Tailwind v4
 RUN npm install @tailwindcss/postcss postcss autoprefixer
-
+RUN npm install
 # 2. Instalar dependencias de Composer
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-scripts
-
-# 3. Instalar dependencias de Node
-COPY package*.json ./
-# Luego instalar el resto y compilar
-RUN npm install && npm run build
-
-# 4. Copiar el resto del código
+# 2. ¡ESTE ES EL PASO CLAVE!
+# Copiamos todo el código fuente ANTES de compilar
 COPY . .
 
 # 5. Compilar assets para producción
