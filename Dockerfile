@@ -39,6 +39,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # 5. Establecer directorio de trabajo
 WORKDIR /var/www/html
 
+# Instalar Node.js para compilar assets
+RUN curl -sL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
+COPY package*.json ./
+# Después del composer install...
+RUN npm install && npm run build
 # 6. Copiar los archivos del proyecto
 COPY . .
 
