@@ -60,7 +60,7 @@ COPY . .
 RUN npm run build
 
 # 7. Instalar dependencias de PHP (Optimizadas para producción)
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+RUN composer install --optimize-autoloader --no-scripts
 
 # 8. Dar permisos a las carpetas de almacenamiento
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
