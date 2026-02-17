@@ -25,7 +25,7 @@
                     <div class="flex items-center gap-2">
                         <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded">Tarjeta #{{ $loop->iteration }}</span>
                         <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                             {{ $card->brand }} - {{ substr($card->account->account_number, 0, 20) }}
+                             {{ $card->brand }} - {{ substr($card->account->account_number, 0, 24) }}
                         </h2>
                     </div>
 

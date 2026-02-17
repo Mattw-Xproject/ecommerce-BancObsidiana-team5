@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
-            @vite(['resources/css/app.css', 'resources/js/app.js'])
-            <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link href="https://fonts.cdnfonts.com/css/denvort" rel="stylesheet">
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <link href="https://fonts.cdnfonts.com/css/denvort" rel="stylesheet">
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
