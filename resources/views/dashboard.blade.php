@@ -132,7 +132,7 @@
                             onclick="toggleTransactions({{ $card->id }})"
                             class="w-full flex items-center justify-between px-6 py-3 bg-zinc-100 dark:bg-zinc-200 text-black rounded-lg border border-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-300 transition-all font-bold text-sm shadow-sm"
                         >
-                            <span class="flex items-center gap-2 dark:text-zinc-400">
+                            <span class="flex items-center gap-2 dark:bg-indigo-600 dark:text-white">
                                 <flux:icon.list-bullet class="size-4" />
                                 Ver Movimientos Recientes
                             </span>
