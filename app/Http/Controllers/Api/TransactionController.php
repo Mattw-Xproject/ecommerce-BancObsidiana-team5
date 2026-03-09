@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Http\Controllers\Controller;
+
 
 class TransactionController extends Controller
 {
@@ -29,42 +31,52 @@ class TransactionController extends Controller
             return response()->json(['status' => 'ERROR', 'errors' => $validator->errors()], 422);
         }
 
-        $cardNumber = str_replace(' ', '', $request->card_number); // Limpiamos espacios
-        $bin = substr($cardNumber, 0, 2);
+        // 2. Limpieza y extracción de BIN
+        $cardNumberInput = str_replace(' ', '', $request->card_number);
+        $bin2 = substr($cardNumberInput, 0, 2); // Para validar BancObsidiana (05)
+        $bin6 = substr($cardNumberInput, 0, 6); // Para validar bancos externos (ej. 465100)
 
-        // 2. Lógica de Adquirencia (Routing)
-        if ($bin !== '05') {
+        // 3. Lógica de Adquirencia (Routing)
+        if ($bin2 !== '05') {
+            
+            // Verificamos si la tarjeta pertenece al banco externo (Equipo 5) según la documentación
+            if ($bin6 === '465100' || $bin2 === '46') {
+                try {
+                    // Petición al endpoint del otro banco simulando el JSON requerido
+                    $response = Http::post('http://3.144.142.161/api/transactions/simulate/', [
+                        'button_bank_external' => true,
+                        'bank_identifier'      => 'cienspay',
+                        'card_number'          => $cardNumberInput,
+                        'expiry_date'          => $request->expiry, // Ajustado al nombre del campo que pide su API
+                        'cvv'                  => $request->cvv,
+                        'amount'               => (string) $request->amount,
+                        'description'          => $request->description ?? 'Compra desde comercio',
+                    ]);
+
+                    // Devolvemos exactamente lo que responda el banco externo
+                    return response()->json($response->json(), $response->status());
+
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'status' => 'ERROR',
+                        'message' => 'Fallo al conectar con el banco emisor (cienspay)',
+                        'error' => $e->getMessage()
+                    ], 502); // 502 Bad Gateway
+                }
+            }
+
+            // Si es de un banco ajeno que no es el Equipo 5 (y tampoco es el tuyo)
             return response()->json([
                 'status' => 'ROUTING',
                 'message' => 'Tarjeta ajena a BancObsidiana. Redirigiendo al emisor...',
-                'external_bin' => $bin
+                'external_bin' => $bin6
             ], 200);
         }
 
-        // 3. PROCESAMIENTO LOCAL (Atomicidad total)
+        // 4. PROCESAMIENTO LOCAL (BancObsidiana - BIN 05)
         DB::beginTransaction();
         try {
             // Buscamos la tarjeta asegurando que traiga la cuenta y el dueño (User)
-            $card = Card::where('card_number', $cardNumber)
-                        ->with(['account.user'])
-                        ->first();
-
-            // 1. Limpieza y extracción de BIN
-            $cardNumberInput = str_replace(' ', '', $request->card_number);
-            $bin = substr($cardNumberInput, 0, 2); // Tomamos los primeros 2 dígitos
-
-            // 2. Lógica de Adquirencia (Routing)
-            // Si no empieza por 05, ni siquiera buscamos en nuestra base de datos
-            if ($bin !== '05') {
-                return response()->json([
-                    'status' => 'ROUTING',
-                    'message' => 'Tarjeta ajena a BancObsidiana. Redirigiendo al emisor...',
-                    'external_bin' => $bin,
-                    'action' => 'redirect_to_external_gateway'
-                ], 200);
-            }
-
-            // 3. Si llega aquí, es "nuestra" (05). Procedemos a buscarla:
             $card = Card::where('card_number', $cardNumberInput)
                         ->with('account.user')
                         ->first();
@@ -72,6 +84,7 @@ class TransactionController extends Controller
             if (!$card) {
                 return response()->json(['status' => 'DECLINED', 'message' => 'Tarjeta 05 inexistente'], 404);
             }
+            
             // Validar CVV
             if ($card->cvv !== $request->cvv) {
                 return response()->json(['status' => 'DECLINED', 'message' => 'CVV Incorrecto'], 402);
