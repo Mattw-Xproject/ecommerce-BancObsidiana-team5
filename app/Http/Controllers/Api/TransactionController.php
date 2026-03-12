@@ -9,101 +9,143 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Http; // Para la redirección externa
+use Illuminate\Support\Facades\Http; // <-- IMPORTANTE: Importamos el cliente HTTP
+use Carbon\Carbon;
 
 class TransactionController extends Controller
 {
     public function process(Request $request)
     {
-        // 1. Validación de los datos de entrada
+        // 1. Validación del esquema JSON que recibe nuestro banco desde el comercio
         $validator = Validator::make($request->all(), [
             'card_number'         => 'required|string',
             'cvv'                 => 'required|string',
-            'expiry'              => 'required|string', // Se recibe como MM/YY
+            'expiry'              => 'required|string', // Formato MM/YY
             'amount'              => 'required|numeric|min:0.01',
             'description'         => 'nullable|string|max:255',
-            'destination_account' => 'nullable|string',
+            'destination_account' => 'nullable|string', // Opcional
         ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => 'ERROR', 'errors' => $validator->errors()], 422);
         }
 
-        // 2. Preparación de datos y detección de BIN
-        $cardNumber = str_replace(' ', '', $request->card_number);
-        $bin2 = substr($cardNumber, 0, 2); // Para BancObsidiana (05)
-        $bin6 = substr($cardNumber, 0, 6); // Para Banco Externo (465100) 
+        // Limpieza y extracción de BIN
+        $cardNumberClean = str_replace(' ', '', $request->card_number); // Sin espacios para uso local
+        $bin = substr($cardNumberClean, 0, 2);
 
-        // 3. LÓGICA DE ADQUIRENCIA (Redirección a Banco Externo)
-        // Si no es nuestra tarjeta (05), verificamos si es del Equipo 5
-        if ($bin2 !== '05') {
-            if ($bin6 === '465100' || substr($bin2, 0, 2) === '46') {
-                try {
-                    $response = Http::post('http://3.144.142.161/api/transactions/simulate/', [
-                        'button_bank_external' => true, [cite: 1]
-                        'bank_identifier'      => 'cienspay', [cite: 1]
-                        'card_number'          => $cardNumber, [cite: 1]
-                        'expiry_date'          => $request->expiry, // Mapeado al formato que ellos piden 
-                        'cvv'                  => $request->cvv, [cite: 1]
-                        'amount'               => (string) $request->amount, [cite: 1]
-                        'description'          => $request->description ?? 'Compra desde comercio', [cite: 1]
-                    ]);
+        // -------------------------------------------------------------------
+        // 2. LÓGICA DE ADQUIRENCIA (ENRUTAMIENTO A OTRO BANCO)
+        // -------------------------------------------------------------------
+        if ($bin !== '05') {
 
-                    return response()->json($response->json(), $response->status());
-                } catch (\Exception $e) {
-                    return response()->json(['status' => 'ERROR', 'message' => 'Error de conexión con banco externo'], 502);
-                }
+            // Construimos el JSON exactamente como lo pide la API externa
+            $externalPayload = [
+                'amount'               => (string) $request->amount, // Lo convertimos a string según tu ejemplo
+                'bank_identifier'      => 'bancobsidiana', // Nos identificamos ante ellos
+                'button_bank_external' => true,
+                'card_number'          => $request->card_number, // Enviamos el original (con o sin espacios)
+                'cvv'                  => $request->cvv,
+                'description'          => $request->description ?? 'Compra en Tienda Demo',
+                'expiry_date'          => $request->expiry // Mapeamos de 'expiry' a 'expiry_date'
+            ];
+
+            try {
+                // Realizamos la petición POST al banco externo (Cienspay - Equipo 5)
+                $response = Http::timeout(15)
+                                ->withHeaders(['Content-Type' => 'application/json'])
+                                ->post('http://3.144.142.161/api/transactions/simulate/', $externalPayload);
+
+                // Reenviamos la respuesta del banco externo a nuestro comercio
+                return response()->json([
+                    'status' => 'ROUTED',
+                    'message' => 'Transacción procesada por banco externo.',
+                    'external_bank_response' => $response->json(), // Respuesta decodificada de ellos
+                    'http_code' => $response->status()
+                ], $response->status());
+
+            } catch (\Exception $e) {
+                // Si el servidor del otro banco está caído o tarda mucho
+                return response()->json([
+                    'status' => 'ERROR',
+                    'message' => 'Error de conexión con el banco emisor externo.',
+                    'error_detail' => $e->getMessage()
+                ], 502); // 502 Bad Gateway
             }
-
-            return response()->json([
-                'status' => 'ROUTING',
-                'message' => 'Tarjeta ajena. Redirigiendo...',
-                'external_bin' => $bin2
-            ], 200);
         }
 
-        // 4. PROCESAMIENTO LOCAL (BancObsidiana - BIN 05)
+        // -------------------------------------------------------------------
+        // 3. PROCESAMIENTO LOCAL (BancObsidiana - BIN 05)
+        // -------------------------------------------------------------------
         DB::beginTransaction();
         try {
-            $card = Card::where('card_number', $cardNumber)->with('account.user')->first();
+            // Buscamos la tarjeta asegurando que traiga la cuenta y el dueño (User)
+            $card = Card::where('card_number', $cardNumberClean)
+                        ->with('account.user')
+                        ->first();
 
             if (!$card) {
-                return response()->json(['status' => 'DECLINED', 'message' => 'Tarjeta no encontrada'], 404);
+                return response()->json(['status' => 'DECLINED', 'message' => 'Tarjeta 05 inexistente'], 404);
             }
 
-            // Validaciones de seguridad local
+            // Validar CVV
             if ($card->cvv !== $request->cvv) {
                 return response()->json(['status' => 'DECLINED', 'message' => 'CVV Incorrecto'], 402);
             }
 
-            if ($card->expiration_date->format('m/y') !== $request->expiry) {
-                return response()->json(['status' => 'DECLINED', 'message' => 'Fecha de expiración inválida'], 402);
+            // Validar Expiración (MM/YY)
+            $expiryInput = $request->expiry;
+            if ($card->expiration_date->format('m/y') !== $expiryInput) {
+                return response()->json(['status' => 'DECLINED', 'message' => 'Fecha de expiración no coincide'], 402);
             }
 
-            $totalToDebit = $request->amount + round($request->amount * 0.02, 2);
+            $amount = $request->amount;
+            $fee = round($amount * 0.02, 2); // 2% Comisión
+            $totalToDebit = $amount + $fee;
 
+            // Validar Saldo del Usuario
             if ($card->account->balance < $totalToDebit) {
-                return response()->json(['status' => 'DECLINED', 'message' => 'Saldo insuficiente'], 402);
+                return response()->json(['status' => 'DECLINED', 'message' => 'Saldo insuficiente para monto + comisión'], 402);
             }
 
-            // Ejecución de la transacción
+            // --- OPERACIÓN BANCARIA LOCAL ---
+
+            // A. Descontar al Emisor
             $card->account->decrement('balance', $totalToDebit);
 
+            // B. Si hay cuenta destino, acreditar (Transferencia interna)
+            $destAccount = null;
+            if ($request->has('destination_account')) {
+                $destAccount = Account::where('account_number', $request->destination_account)->first();
+                if ($destAccount) {
+                    $destAccount->increment('balance', $amount);
+                }
+            }
+
+            // C. Registrar Transacción en el historial local
             $transaction = Transaction::create([
-                'card_id'    => $card->id,
-                'account_id' => $card->account->id,
-                'amount'     => $request->amount,
-                'reference'  => 'OBS-' . strtoupper(bin2hex(random_bytes(4))),
-                'status'     => 'approved',
-                'merchant_name' => $request->description ?? 'Compra Online'
+                'card_id'          => $card->id,
+                'account_id'       => $card->account->id,
+                'merchant_name'    => $request->description ?? 'Compra Online',
+                'reference'        => 'OBS-' . strtoupper(bin2hex(random_bytes(4))),
+                'type'             => $destAccount ? 'TRANSFER' : 'PURCHASE',
+                'amount'           => $amount,
+                'fee'              => $fee,
+                'status'           => 'approved',
+                'response_message' => "Pago a: " . ($request->destination_account ?? "Comercio Externo")
             ]);
 
             DB::commit();
 
             return response()->json([
-                'status' => 'APPROVED',
-                'auth'   => $transaction->reference,
-                'client' => $card->account->user->name
+                'status'  => 'APPROVED',
+                'auth'    => $transaction->reference,
+                'client'  => $card->account->user->name,
+                'details' => [
+                    'debited'     => $totalToDebit,
+                    'fee'         => $fee,
+                    'description' => $transaction->merchant_name
+                ]
             ], 200);
 
         } catch (\Exception $e) {
